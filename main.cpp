@@ -23,9 +23,9 @@ int getFileSize(char* path) {
 }
 
 void readFile(int offset, int size) {
-  if (size < 10) return;
+  if (size < 80) return;
   char* buf = (char*)offset;
-  buf[9] = '\0';
+  buf[79] = '\0';
   emscripten_log(1, "File starts with: %s...", buf);
 }
 
