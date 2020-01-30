@@ -1,29 +1,36 @@
 // Copyright 2020, Bill Ticehurst
 #include <emscripten.h>
+#include <emscripten/bind.h>
 
 #include <math.h>
 #include <stdio.h>
 
-extern "C" {
-  int int_sqrt(int x) {
-    emscripten_log(1, "Trying this... %d", x);
-    return sqrt(x);
-  }
+using namespace emscripten;
 
-  int getFileSize(char* path) {
-    FILE* file = fopen(path, "rb");
-    if (!file) {
-      return -1;
-    }
-    emscripten_log(1, "Opened the file successfully");
-    fclose(file);
-    return 0;
-  }
+int int_sqrt(int x) {
+  emscripten_log(1, "Trying this... %d", x);
+  return sqrt(x);
+}
 
-  void readFile(int offset, int size) {
-    if (size < 10) return;
-    char* buf = (char*)offset;
-    buf[9] = '\0';
-    emscripten_log(1, "File starts with: %s...", buf);
+int getFileSize(char* path) {
+  FILE* file = fopen(path, "rb");
+  if (!file) {
+    return -1;
   }
+  emscripten_log(1, "Opened the file successfully");
+  fclose(file);
+  return 0;
+}
+
+void readFile(int offset, int size) {
+  if (size < 10) return;
+  char* buf = (char*)offset;
+  buf[9] = '\0';
+  emscripten_log(1, "File starts with: %s...", buf);
+}
+
+EMSCRIPTEN_BINDINGS(my_module) {
+  function("int_sqrt", &int_sqrt);
+  function("getFileSize", &getFileSize, allow_raw_pointers());
+  function("readFile", &readFile);
 }

@@ -11,8 +11,8 @@ Compiled with WebAssembly.
 
 ## TODO
 
-- Instantiate and call the Wasm export to return the first byte value.
+- Try some C++ classes such as `std::vector<std::string>`
 
 ## Notes
 
-- embind docs: https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html
+- If random errors start occurring, run `emcc --clear-cache` and try again.
