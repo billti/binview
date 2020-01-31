@@ -2,35 +2,68 @@
 #include <emscripten.h>
 #include <emscripten/bind.h>
 
-#include <math.h>
-#include <stdio.h>
+#include <string>
+#include <vector>
+#include <map>
+
+#include "win.h"
 
 using namespace emscripten;
-
-int int_sqrt(int x) {
-  emscripten_log(1, "Trying this... %d", x);
-  return sqrt(x);
-}
-
-int getFileSize(char* path) {
-  FILE* file = fopen(path, "rb");
-  if (!file) {
-    return -1;
-  }
-  emscripten_log(1, "Opened the file successfully");
-  fclose(file);
-  return 0;
-}
+using std::string, std::vector, std::map;
 
 void readFile(int offset, int size) {
+  // Windows binaries start with "MZ"
+  if(size > sizeof(IMAGE_DOS_HEADER)) {
+    IMAGE_DOS_HEADER* pHeader = (IMAGE_DOS_HEADER*)offset;
+    if (pHeader->e_magic == IMAGE_DOS_SIGNATURE) {
+      emscripten_log(1, "File appears to be a Windows executable");
+    }
+  }
   if (size < 80) return;
   char* buf = (char*)offset;
   buf[79] = '\0';
   emscripten_log(1, "File starts with: %s...", buf);
 }
 
+/* See PR at https://github.com/emscripten-core/emscripten/pull/9348
+map<string, string> getFileProperties() {
+  return {{"first", "a value"}, {"second", "next value"}};
+}
+*/
+
+vector<string> getSectionNames() {
+  return {".text", ".data", ".bss", ".const"};
+}
+
+struct Section {
+  string name;
+  int size;
+  bool executable;
+  bool writable;
+};
+
+vector<Section> getSections() {
+  return {
+    {".text", 4096, true, false},
+    {".data", 8192, false, true}
+  };
+}
+
 EMSCRIPTEN_BINDINGS(my_module) {
-  function("int_sqrt", &int_sqrt);
-  function("getFileSize", &getFileSize, allow_raw_pointers());
+  register_vector<std::string>("vector<string>");
+  register_vector<Section>("vector<Section>");
+  // register_map<std::string, std::string>("map<string, string>");
+
+  value_object<Section>("Section")
+    .field("name", &Section::name)
+    .field("size", &Section::size)
+    .field("executable", &Section::executable)
+    .field("writable", &Section::writable);
+  function("getSections", &getSections);
+  // Allows for JS such as `Module.getSections.get(0)`, which will return a JS
+  // object with properties {name: string, size: number, executable: boolean, writable: boolean}.
+
   function("readFile", &readFile);
+  // function("getFileProperties", getFileProperties);
+  function("getSectionNames", &getSectionNames);
 }

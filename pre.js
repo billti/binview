@@ -23,7 +23,6 @@ function dragOverHandler(ev) {
 }
 
 function call_wasm() {
-  console.log(`sqrt(12) = ${Module.int_sqrt(12)}`);
 }
 
 var Module = {
