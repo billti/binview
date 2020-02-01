@@ -1,4 +1,8 @@
+.vscode/
 app.js
 app.wasm
 app.wasm.map
-.vscode/
+*.obj
+*.pdb
+*.exe
+*.ilk

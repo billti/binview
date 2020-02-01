@@ -1,17 +1,24 @@
 // Copyright 2020, Bill Ticehurst
-#include <emscripten.h>
-#include <emscripten/bind.h>
 
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 #include "win.h"
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#include <emscripten/bind.h>
 using namespace emscripten;
+#else
+#include <stdio.h>
+#define emscripten_log(level, ...) \
+    printf(__VA_ARGS__);
+#endif
+
 using std::string, std::vector, std::map;
 
-void readFile(int offset, int size) {
+void readFile(uintptr_t offset, int size) {
   // Windows binaries start with "MZ"
   if(size > sizeof(IMAGE_DOS_HEADER)) {
     IMAGE_DOS_HEADER* pHeader = (IMAGE_DOS_HEADER*)offset;
@@ -24,11 +31,13 @@ void readFile(int offset, int size) {
       // they are 32 or 64 bit indicated by OptionalHeader.Magic (which is the
       // same offset for either bitness).
       IMAGE_NT_HEADERS32 *pe_header = (IMAGE_NT_HEADERS32*)(offset + pe_offset);
+
       if (pe_header->Signature == IMAGE_NT_SIGNATURE) {
-        emscripten_log(1, "File appears to be an NT (not DOS) binary");
+        emscripten_log(1, "File appears to be a Windows NT binary");
         if (pe_header->FileHeader.SizeOfOptionalHeader == 0) {
           emscripten_log(1, "No optional header. Not an executable image");
         } else {
+          IMAGE_SECTION_HEADER* first_section = GetFirstSection(pe_header);
           if (pe_header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
             emscripten_log(1, "Optional header indicates a 32-bit binary");
           } else if (pe_header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
@@ -44,6 +53,8 @@ void readFile(int offset, int size) {
         emscripten_log(1, "Image appears to be an AMD64 COFF object file");
       } else if (file_header->Machine == IMAGE_FILE_MACHINE_I386) {
         emscripten_log(1, "Image appears to be an x86 COFF object file");
+      } else {
+        emscripten_log(1, "Unknown file type");
       }
     }
   }
@@ -77,6 +88,7 @@ vector<Section> getSections() {
   };
 }
 
+#if defined(__EMSCRIPTEN__)
 EMSCRIPTEN_BINDINGS(my_module) {
   register_vector<std::string>("vector<string>");
   register_vector<Section>("vector<Section>");
@@ -95,3 +107,4 @@ EMSCRIPTEN_BINDINGS(my_module) {
   // function("getFileProperties", getFileProperties);
   function("getSectionNames", &getSectionNames);
 }
+#endif
