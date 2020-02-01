@@ -9,9 +9,13 @@ Compiled with WebAssembly.
 - Build with the `build` command in the root (or `build opt`).
 - Launch the server with `python serve.py` and open <http://localhost:8000>
 
+You can also run `build msvc` to create a test program at `bin\tests.exe`.
+
 ## TODO
 
-- Try some C++ classes such as `std::vector<std::string>`
+- Write some tests
+- Extract the exports from a DLL
+- Extract the symbols from an object file
 
 ## Notes
 

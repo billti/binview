@@ -1,3 +1,7 @@
+// Copyright 2020 Bill Ticehurst. All rights reserved.
+// Use of this source code is governed by the MIT license that can be
+// found in the LICENSE file
+
 #pragma once
 
 #define IMAGE_DOS_SIGNATURE                 0x5A4D      // MZ

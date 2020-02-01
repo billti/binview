@@ -1,3 +1,7 @@
+// Copyright 2020 Bill Ticehurst. All rights reserved.
+// Use of this source code is governed by the MIT license that can be
+// found in the LICENSE file
+
 // See https://docs.microsoft.com/en-us/windows/win32/winprog/windows-data-types
 // Also https://docs.microsoft.com/en-us/windows/win32/debug/pe-format
 #pragma once
