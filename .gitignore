@@ -1,4 +1,5 @@
 .vscode/
+assets/
 bin/
 app.js
 app.wasm

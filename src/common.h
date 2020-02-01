@@ -20,3 +20,16 @@ static_assert(sizeof(uintptr_t) == 8);
 #else
 static_assert(sizeof(uintptr_t) == 4);
 #endif
+
+#if defined(__EMSCRIPTEN__)
+
+#include <emscripten.h>
+#include <emscripten/bind.h>
+#define LOG(...) emscripten_log(1, __VA_ARGS__)
+
+#else  // defined(__EMSCRIPTEN__)
+
+#include <stdio.h>
+#define LOG(...) printf(__VA_ARGS__);
+
+#endif // defined(__EMSCRIPTEN__)
