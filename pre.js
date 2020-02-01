@@ -17,7 +17,8 @@ function dropHandler(ev) {
     let buffer_address = Module._malloc(buffer_size);
 
     Module.HEAPU8.set(new Uint8Array(evt.target.result), buffer_address);
-    Module.readFile(buffer_address, buffer_size);
+    let file_type = Module.GetFileType(buffer_address, buffer_size);
+    console.log("File type is: " + file_type);
   }
   reader.readAsArrayBuffer(file);
 }
