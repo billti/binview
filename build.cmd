@@ -29,7 +29,7 @@ SET BINDIR=%~dp0bin
 IF NOT EXIST %BINDIR% MKDIR %BINDIR%
 
 PUSHD %BINDIR%
-SET MY_CFLAGS=/GS- /GR- /std:c++17 /Zi /MDd
+SET MY_CFLAGS=/GS- /GR- /EHsc /std:c++17 /Zi /MDd
 cl.exe ../src/tests.cpp ../src/main.cpp %MY_CFLAGS%
 POPD
 EXIT /B

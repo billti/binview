@@ -16,7 +16,7 @@ string GetFileType(uintptr_t file_addr, size_t size) {
   if(size > sizeof(IMAGE_DOS_HEADER)) {
     IMAGE_DOS_HEADER* pHeader = (IMAGE_DOS_HEADER*)file_addr;
     if (pHeader->e_magic == IMAGE_DOS_SIGNATURE) {
-      LOG("File appears to be a DOS/Windows binary");
+      LOG("File appears to be a DOS/Windows binary\n");
 
       // The actual PE data is at the offset in the field below.
       int pe_offset = pHeader->e_lfanew;
@@ -30,40 +30,40 @@ string GetFileType(uintptr_t file_addr, size_t size) {
       }
 
       if (pe_header->Signature != IMAGE_NT_SIGNATURE) {
-        LOG("File is not a Windows NT binary (missing signature)");
+        LOG("File is not a Windows NT binary (missing signature)\n");
         return string{};
       }
 
-      LOG("File appears to be a Windows NT binary");
+      LOG("File appears to be a Windows NT binary\n");
       if (pe_header->FileHeader.SizeOfOptionalHeader == 0) {
-        LOG("No optional header. Not an executable image");
+        LOG("No optional header. Not an executable image\n");
         return string{};
       }
       // IMAGE_SECTION_HEADER* first_section = GetFirstSection(pe_header);
       if (pe_header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
         switch (pe_header->FileHeader.Machine) {
           case IMAGE_FILE_MACHINE_I386:
-            LOG("Optional header indicates a 32-bit I386 binary");
+            LOG("Optional header indicates a 32-bit I386 binary\n");
             return string{PE_X86};
           default:
-            LOG("Header indicates an unrecognized 32-bit binary");
+            LOG("Header indicates an unrecognized 32-bit binary\n");
             return string{};
         }
       } else if (pe_header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-        LOG("Optional header indicates a 64-bit binary");
+        LOG("Optional header indicates a 64-bit binary\n");
         switch (pe_header->FileHeader.Machine) {
           case IMAGE_FILE_MACHINE_AMD64:
-            LOG("Optional header indicates AMD64 binary");
+            LOG("Optional header indicates AMD64 binary\n");
             return string{PE_AMD64};
           case IMAGE_FILE_MACHINE_ARM64:
-            LOG("Optional header indicates a ARM64 binary");
+            LOG("Optional header indicates a ARM64 binary\n");
             return string{PE_ARM64};
           default:
-            LOG("Header indicates an unrecognized 64-bit binary");
+            LOG("Header indicates an unrecognized 64-bit binary\n");
             return string{};
         }
       } else {
-        LOG("OptionalHeader magic valid not recognized");
+        LOG("OptionalHeader magic valid not recognized\n");
         return string{};
       }
     }
@@ -73,23 +73,23 @@ string GetFileType(uintptr_t file_addr, size_t size) {
   if (size >= sizeof(IMAGE_FILE_HEADER)) {
     IMAGE_FILE_HEADER* file_header = (IMAGE_FILE_HEADER*)file_addr;
     if (file_header->Machine == IMAGE_FILE_MACHINE_AMD64) {
-      LOG("Image appears to be an AMD64 COFF object file");
+      LOG("Image appears to be an AMD64 COFF object file\n");
       return string{COFF_AMD64};
     } else if (file_header->Machine == IMAGE_FILE_MACHINE_I386) {
-      LOG("Image appears to be an x86 COFF object file");
+      LOG("Image appears to be an x86 COFF object file\n");
       return string{COFF_X86};
     } else if (file_header->Machine == IMAGE_FILE_MACHINE_ARM64) {
-      LOG("Image appears to be an ARM64 COFF object file");
+      LOG("Image appears to be an ARM64 COFF object file\n");
       return string{COFF_ARM64};
     }
   }
 
   if (size >= 8 && strncmp((char*)file_addr, IMAGE_ARCHIVE_START, IMAGE_ARCHIVE_START_SIZE) == 0) {
-    LOG("Image appears to be an archive (.lib) file");
+    LOG("Image appears to be an archive (.lib) file\n");
     return string{LIB};
   }
 
-  LOG("Unknown file type.");
+  LOG("Unknown file type.\n");
   return string{};
 }
 
