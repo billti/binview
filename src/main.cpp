@@ -45,8 +45,10 @@ void readFile(uintptr_t offset, int size) {
         LOG("Image appears to be an AMD64 COFF object file");
       } else if (file_header->Machine == IMAGE_FILE_MACHINE_I386) {
         LOG("Image appears to be an x86 COFF object file");
+      } else if (strncmp((char*)offset, IMAGE_ARCHIVE_START, IMAGE_ARCHIVE_START_SIZE) == 0) {
+        LOG("Image appears to be an archive (.lib) file");
       } else {
-        LOG("Unknown file type");
+        LOG("Unknown file type.");
       }
     }
   }

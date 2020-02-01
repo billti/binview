@@ -60,6 +60,9 @@
 #define IMAGE_FILE_MACHINE_ARM64             0xAA64  // ARM64 Little-Endian
 #define IMAGE_FILE_MACHINE_CEE               0xC0EE
 
+#define IMAGE_ARCHIVE_START_SIZE             8
+#define IMAGE_ARCHIVE_START                  "!<arch>\n"
+
 // // Subsystem Values
 
 // #define IMAGE_SUBSYSTEM_UNKNOWN              0   // Unknown subsystem.
@@ -409,8 +412,6 @@
 // // Archive format.
 // //
 
-// #define IMAGE_ARCHIVE_START_SIZE             8
-// #define IMAGE_ARCHIVE_START                  "!<arch>\n"
 // #define IMAGE_ARCHIVE_END                    "`\n"
 // #define IMAGE_ARCHIVE_PAD                    "\n"
 // #define IMAGE_ARCHIVE_LINKER_MEMBER          "/               "
