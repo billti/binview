@@ -23,6 +23,11 @@ Echo Build from a Visual Studio Developer Command Prompt
 EXIT /B 1
 
 :msvc_build
-SET MY_CFLAGS=/GS- /GX- /GR- /Fetest.exe /std:c++17 /Zi /MDd
-cl.exe main.cpp tests.cpp %MY_CFLAGS%
+SET BINDIR=%~dp0bin
+IF NOT EXIST %BINDIR% MKDIR %BINDIR%
+
+PUSHD %BINDIR%
+SET MY_CFLAGS=/GS- /GR- /std:c++17 /Zi /MDd
+cl.exe ../tests.cpp ../main.cpp %MY_CFLAGS%
+POPD
 EXIT /B

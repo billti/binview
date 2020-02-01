@@ -1,8 +1,5 @@
 .vscode/
+bin/
 app.js
 app.wasm
 app.wasm.map
-*.obj
-*.pdb
-*.exe
-*.ilk
