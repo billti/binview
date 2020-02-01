@@ -14,7 +14,9 @@ SET MY_CFLAGS=-o app.js -gforce_dwarf -std=c++17 -fno-exceptions -fno-rtti -s AL
 SET MY_CFLAGS=%MY_CFLAGS% --bind --pre-js pre.js -DEMSCRIPTEN_HAS_UNBOUND_TYPE_NAMES=0
 IF "%1"=="opt" SET MY_CFLAGS=-O2 %MY_CFLAGS%
 
-em++ main.cpp %MY_CFLAGS%
+PUSHD %~dp0
+em++ src/main.cpp %MY_CFLAGS%
+POPD
 EXIT /B
 
 :msvc
@@ -28,6 +30,6 @@ IF NOT EXIST %BINDIR% MKDIR %BINDIR%
 
 PUSHD %BINDIR%
 SET MY_CFLAGS=/GS- /GR- /std:c++17 /Zi /MDd
-cl.exe ../tests.cpp ../main.cpp %MY_CFLAGS%
+cl.exe ../src/tests.cpp ../src/main.cpp %MY_CFLAGS%
 POPD
 EXIT /B
