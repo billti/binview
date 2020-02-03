@@ -16,6 +16,8 @@ You can also run `build msvc` to create a test program at `bin\tests.exe`.
 - Write some tests
 - Extract the exports from a DLL
 - Extract the symbols from an object file
+- Handle LIB files (https://www.codeproject.com/Articles/1253835/The-structure-of-import-library-file-lib)
+
 
 ## Notes
 

@@ -60,26 +60,45 @@
 #define IMAGE_FILE_MACHINE_ARM64             0xAA64  // ARM64 Little-Endian
 #define IMAGE_FILE_MACHINE_CEE               0xC0EE
 
+// Directory Entries
+
+#define IMAGE_DIRECTORY_ENTRY_EXPORT          0   // Export Directory
+#define IMAGE_DIRECTORY_ENTRY_IMPORT          1   // Import Directory
+#define IMAGE_DIRECTORY_ENTRY_RESOURCE        2   // Resource Directory
+#define IMAGE_DIRECTORY_ENTRY_EXCEPTION       3   // Exception Directory
+#define IMAGE_DIRECTORY_ENTRY_SECURITY        4   // Security Directory
+#define IMAGE_DIRECTORY_ENTRY_BASERELOC       5   // Base Relocation Table
+#define IMAGE_DIRECTORY_ENTRY_DEBUG           6   // Debug Directory
+//      IMAGE_DIRECTORY_ENTRY_COPYRIGHT       7   // (X86 usage)
+#define IMAGE_DIRECTORY_ENTRY_ARCHITECTURE    7   // Architecture Specific Data
+#define IMAGE_DIRECTORY_ENTRY_GLOBALPTR       8   // RVA of GP
+#define IMAGE_DIRECTORY_ENTRY_TLS             9   // TLS Directory
+#define IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG    10   // Load Configuration Directory
+#define IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT   11   // Bound Import Directory in headers
+#define IMAGE_DIRECTORY_ENTRY_IAT            12   // Import Address Table
+#define IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT   13   // Delay Load Import Descriptors
+#define IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR 14   // COM Runtime descriptor
+
 #define IMAGE_ARCHIVE_START_SIZE             8
 #define IMAGE_ARCHIVE_START                  "!<arch>\n"
 
-// // Subsystem Values
+// Subsystem Values
 
-// #define IMAGE_SUBSYSTEM_UNKNOWN              0   // Unknown subsystem.
-// #define IMAGE_SUBSYSTEM_NATIVE               1   // Image doesn't require a subsystem.
-// #define IMAGE_SUBSYSTEM_WINDOWS_GUI          2   // Image runs in the Windows GUI subsystem.
-// #define IMAGE_SUBSYSTEM_WINDOWS_CUI          3   // Image runs in the Windows character subsystem.
-// #define IMAGE_SUBSYSTEM_OS2_CUI              5   // image runs in the OS/2 character subsystem.
-// #define IMAGE_SUBSYSTEM_POSIX_CUI            7   // image runs in the Posix character subsystem.
-// #define IMAGE_SUBSYSTEM_NATIVE_WINDOWS       8   // image is a native Win9x driver.
-// #define IMAGE_SUBSYSTEM_WINDOWS_CE_GUI       9   // Image runs in the Windows CE subsystem.
-// #define IMAGE_SUBSYSTEM_EFI_APPLICATION      10  //
-// #define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER  11   //
-// #define IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER   12  //
-// #define IMAGE_SUBSYSTEM_EFI_ROM              13
-// #define IMAGE_SUBSYSTEM_XBOX                 14
-// #define IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION 16
-// #define IMAGE_SUBSYSTEM_XBOX_CODE_CATALOG    17
+#define IMAGE_SUBSYSTEM_UNKNOWN              0   // Unknown subsystem.
+#define IMAGE_SUBSYSTEM_NATIVE               1   // Image doesn't require a subsystem.
+#define IMAGE_SUBSYSTEM_WINDOWS_GUI          2   // Image runs in the Windows GUI subsystem.
+#define IMAGE_SUBSYSTEM_WINDOWS_CUI          3   // Image runs in the Windows character subsystem.
+#define IMAGE_SUBSYSTEM_OS2_CUI              5   // image runs in the OS/2 character subsystem.
+#define IMAGE_SUBSYSTEM_POSIX_CUI            7   // image runs in the Posix character subsystem.
+#define IMAGE_SUBSYSTEM_NATIVE_WINDOWS       8   // image is a native Win9x driver.
+#define IMAGE_SUBSYSTEM_WINDOWS_CE_GUI       9   // Image runs in the Windows CE subsystem.
+#define IMAGE_SUBSYSTEM_EFI_APPLICATION      10  //
+#define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER  11   //
+#define IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER   12  //
+#define IMAGE_SUBSYSTEM_EFI_ROM              13
+#define IMAGE_SUBSYSTEM_XBOX                 14
+#define IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION 16
+#define IMAGE_SUBSYSTEM_XBOX_CODE_CATALOG    17
 
 // // DllCharacteristics Entries
 
@@ -99,24 +118,6 @@
 // #define IMAGE_DLLCHARACTERISTICS_GUARD_CF     0x4000     // Image supports Control Flow Guard.
 // #define IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE     0x8000
 
-// // Directory Entries
-
-// #define IMAGE_DIRECTORY_ENTRY_EXPORT          0   // Export Directory
-// #define IMAGE_DIRECTORY_ENTRY_IMPORT          1   // Import Directory
-// #define IMAGE_DIRECTORY_ENTRY_RESOURCE        2   // Resource Directory
-// #define IMAGE_DIRECTORY_ENTRY_EXCEPTION       3   // Exception Directory
-// #define IMAGE_DIRECTORY_ENTRY_SECURITY        4   // Security Directory
-// #define IMAGE_DIRECTORY_ENTRY_BASERELOC       5   // Base Relocation Table
-// #define IMAGE_DIRECTORY_ENTRY_DEBUG           6   // Debug Directory
-// //      IMAGE_DIRECTORY_ENTRY_COPYRIGHT       7   // (X86 usage)
-// #define IMAGE_DIRECTORY_ENTRY_ARCHITECTURE    7   // Architecture Specific Data
-// #define IMAGE_DIRECTORY_ENTRY_GLOBALPTR       8   // RVA of GP
-// #define IMAGE_DIRECTORY_ENTRY_TLS             9   // TLS Directory
-// #define IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG    10   // Load Configuration Directory
-// #define IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT   11   // Bound Import Directory in headers
-// #define IMAGE_DIRECTORY_ENTRY_IAT            12   // Import Address Table
-// #define IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT   13   // Delay Load Import Descriptors
-// #define IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR 14   // COM Runtime descriptor
 
 // //
 // // Section characteristics.

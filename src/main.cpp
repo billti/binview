@@ -11,6 +11,17 @@
 
 using std::string, std::vector, std::map;
 
+void LogSectionNames(IMAGE_NT_HEADERS32 *pe_header) {
+  IMAGE_SECTION_HEADER* section = GetFirstSection(pe_header);
+  WORD section_count = pe_header->FileHeader.NumberOfSections;
+  char section_name[9];
+  for(WORD i = 0; i < section_count; ++i, ++section) {
+    memset(section_name, 0, 9);
+    memcpy(section_name, section->Name, 8);
+    LOG("Section %d: %s\n", i, section_name);
+  }
+}
+
 string GetFileType(uintptr_t file_addr, size_t size) {
   // Windows binaries start with "MZ"
   if(size > sizeof(IMAGE_DOS_HEADER)) {
@@ -39,8 +50,18 @@ string GetFileType(uintptr_t file_addr, size_t size) {
         LOG("No optional header. Not an executable image\n");
         return string{};
       }
+      if (pe_header->FileHeader.Characteristics & IMAGE_FILE_EXECUTABLE_IMAGE) {
+        if (pe_header->FileHeader.Characteristics & IMAGE_FILE_DLL) {
+          LOG("Image is a DLL\n");
+        } else {
+          LOG("Image is an executable (e.g. .exe");
+        }
+      }
+      // pe_header->OptionalHeader.AddressOfEntryPoint == main or DllMain, or _crtMain or NULL (/noentry) etc.
       // IMAGE_SECTION_HEADER* first_section = GetFirstSection(pe_header);
       if (pe_header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
+        // if an exe, pe_header->OptionalHeader.Subsystem == IMAGE_SUBSYSTEM_WINDOWS_{GUI,CUI} etc..
+        LogSectionNames(pe_header);
         switch (pe_header->FileHeader.Machine) {
           case IMAGE_FILE_MACHINE_I386:
             LOG("Optional header indicates a 32-bit I386 binary\n");
@@ -51,6 +72,7 @@ string GetFileType(uintptr_t file_addr, size_t size) {
         }
       } else if (pe_header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
         LOG("Optional header indicates a 64-bit binary\n");
+        LogSectionNames(pe_header);
         switch (pe_header->FileHeader.Machine) {
           case IMAGE_FILE_MACHINE_AMD64:
             LOG("Optional header indicates AMD64 binary\n");

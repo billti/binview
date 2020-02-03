@@ -167,17 +167,18 @@ struct IMAGE_SECTION_HEADER {
             DWORD   VirtualSize;
     } Misc;
     DWORD   VirtualAddress;
-    DWORD   SizeOfRawData;
-    DWORD   PointerToRawData;
-    DWORD   PointerToRelocations;
+    DWORD   SizeOfRawData;         // Size of data for the section in the file
+    DWORD   PointerToRawData;      // File offset where data for the section starts
+    DWORD   PointerToRelocations;  // File offset to an array of IMAGE_RELOCATION structures if not 0. (.obj files only)
     DWORD   PointerToLinenumbers;
-    WORD    NumberOfRelocations;
+    WORD    NumberOfRelocations;   // Number of structures pointed to by PointerToRelocations
     WORD    NumberOfLinenumbers;
     DWORD   Characteristics;
 };
 static_assert(sizeof(IMAGE_SECTION_HEADER) == 40);
 
 inline IMAGE_SECTION_HEADER* GetFirstSection(IMAGE_NT_HEADERS32* nt_header) {
+    // nt_header->FileHeader.NumberOfSections -> How many total sections
     uintptr_t result =
         (uintptr_t)nt_header + offsetof(IMAGE_NT_HEADERS32, OptionalHeader)
         + nt_header->FileHeader.SizeOfOptionalHeader;
@@ -187,6 +188,87 @@ inline IMAGE_SECTION_HEADER* GetFirstSection(IMAGE_NT_HEADERS64* nt_header) {
     // Layout of the fields is the same as for 32 bits.
     return GetFirstSection((IMAGE_NT_HEADERS32*) nt_header);
 }
+
+//
+// DLL support.
+//
+
+// Export Format
+struct IMAGE_EXPORT_DIRECTORY {
+    DWORD   Characteristics;
+    DWORD   TimeDateStamp;
+    WORD    MajorVersion;
+    WORD    MinorVersion;
+    DWORD   Name;                   // RVA to the ASCII string for the DLL name
+    DWORD   Base;
+    DWORD   NumberOfFunctions;      // # of entries in the Export Address Table (EAT)
+    DWORD   NumberOfNames;          // # of entries in the Export Names Table (ENT)
+    DWORD   AddressOfFunctions;     // RVA from base of image
+    DWORD   AddressOfNames;         // RVA from base of image
+    DWORD   AddressOfNameOrdinals;  // RVA from base of image
+};
+
+// Import Format
+struct IMAGE_IMPORT_BY_NAME {
+    WORD    Hint;
+    CHAR   Name[1];
+};
+
+// #include "pshpack8.h"                       // Use align 8 for the 64-bit IAT.
+
+struct IMAGE_THUNK_DATA64 {
+    union {
+        ULONGLONG ForwarderString;  // PBYTE
+        ULONGLONG Function;         // PDWORD
+        ULONGLONG Ordinal;
+        ULONGLONG AddressOfData;    // PIMAGE_IMPORT_BY_NAME
+    } u1;
+};
+// #include "poppack.h"                        // Back to 4 byte packing
+
+struct IMAGE_THUNK_DATA32 {
+    union {
+        DWORD ForwarderString;      // PBYTE
+        DWORD Function;             // PDWORD
+        DWORD Ordinal;
+        DWORD AddressOfData;        // PIMAGE_IMPORT_BY_NAME
+    } u1;
+};
+
+struct IMAGE_IMPORT_DESCRIPTOR {
+    union {
+        DWORD   Characteristics;            // 0 for terminating null import descriptor
+        DWORD   OriginalFirstThunk;         // RVA to original unbound IAT (PIMAGE_THUNK_DATA)
+    } DUMMYUNIONNAME;
+    DWORD   TimeDateStamp;                  // 0 if not bound,
+                                            // -1 if bound, and real date\time stamp
+                                            //     in IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (new BIND)
+                                            // O.W. date/time stamp of DLL bound to (Old BIND)
+
+    DWORD   ForwarderChain;                 // -1 if no forwarders
+    DWORD   Name;
+    DWORD   FirstThunk;                     // RVA to IAT (if bound this IAT has actual addresses)
+};
+
+//
+// New format import descriptors pointed to by DataDirectory[ IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT ]
+//
+struct IMAGE_BOUND_IMPORT_DESCRIPTOR {
+    DWORD   TimeDateStamp;
+    WORD    OffsetModuleName;
+    WORD    NumberOfModuleForwarderRefs;
+// Array of zero or more IMAGE_BOUND_FORWARDER_REF follows
+};
+
+struct IMAGE_BOUND_FORWARDER_REF {
+    DWORD   TimeDateStamp;
+    WORD    OffsetModuleName;
+    WORD    Reserved;
+};
+// #define IMAGE_ORDINAL64(Ordinal) (Ordinal & 0xffff)
+// #define IMAGE_ORDINAL32(Ordinal) (Ordinal & 0xffff)
+// #define IMAGE_SNAP_BY_ORDINAL64(Ordinal) ((Ordinal & IMAGE_ORDINAL_FLAG64) != 0)
+// #define IMAGE_SNAP_BY_ORDINAL32(Ordinal) ((Ordinal & IMAGE_ORDINAL_FLAG32) != 0)
 
 ////////////////// Checked up to here. Below is a copy and maybe unnecessary.
 
@@ -502,68 +584,6 @@ inline IMAGE_SECTION_HEADER* GetFirstSection(IMAGE_NT_HEADERS64* nt_header) {
 // #define IMAGE_SIZEOF_ARCHIVE_MEMBER_HDR      60
 
 // //
-// // DLL support.
-// //
-
-// //
-// // Export Format
-// //
-
-// //@[comment("MVI_tracked")]
-// typedef struct _IMAGE_EXPORT_DIRECTORY {
-//     DWORD   Characteristics;
-//     DWORD   TimeDateStamp;
-//     WORD    MajorVersion;
-//     WORD    MinorVersion;
-//     DWORD   Name;
-//     DWORD   Base;
-//     DWORD   NumberOfFunctions;
-//     DWORD   NumberOfNames;
-//     DWORD   AddressOfFunctions;     // RVA from base of image
-//     DWORD   AddressOfNames;         // RVA from base of image
-//     DWORD   AddressOfNameOrdinals;  // RVA from base of image
-// } IMAGE_EXPORT_DIRECTORY, *PIMAGE_EXPORT_DIRECTORY;
-
-// //
-// // Import Format
-// //
-
-// //@[comment("MVI_tracked")]
-// typedef struct _IMAGE_IMPORT_BY_NAME {
-//     WORD    Hint;
-//     CHAR   Name[1];
-// } IMAGE_IMPORT_BY_NAME, *PIMAGE_IMPORT_BY_NAME;
-
-// // #include "pshpack8.h"                       // Use align 8 for the 64-bit IAT.
-
-// typedef struct _IMAGE_THUNK_DATA64 {
-//     union {
-//         ULONGLONG ForwarderString;  // PBYTE
-//         ULONGLONG Function;         // PDWORD
-//         ULONGLONG Ordinal;
-//         ULONGLONG AddressOfData;    // PIMAGE_IMPORT_BY_NAME
-//     } u1;
-// } IMAGE_THUNK_DATA64;
-// typedef IMAGE_THUNK_DATA64 * PIMAGE_THUNK_DATA64;
-
-// // #include "poppack.h"                        // Back to 4 byte packing
-
-// typedef struct _IMAGE_THUNK_DATA32 {
-//     union {
-//         DWORD ForwarderString;      // PBYTE
-//         DWORD Function;             // PDWORD
-//         DWORD Ordinal;
-//         DWORD AddressOfData;        // PIMAGE_IMPORT_BY_NAME
-//     } u1;
-// } IMAGE_THUNK_DATA32;
-// typedef IMAGE_THUNK_DATA32 * PIMAGE_THUNK_DATA32;
-
-// #define IMAGE_ORDINAL64(Ordinal) (Ordinal & 0xffff)
-// #define IMAGE_ORDINAL32(Ordinal) (Ordinal & 0xffff)
-// #define IMAGE_SNAP_BY_ORDINAL64(Ordinal) ((Ordinal & IMAGE_ORDINAL_FLAG64) != 0)
-// #define IMAGE_SNAP_BY_ORDINAL32(Ordinal) ((Ordinal & IMAGE_ORDINAL_FLAG32) != 0)
-
-// //
 // // Thread Local Storage
 // //
 
@@ -629,39 +649,6 @@ inline IMAGE_SECTION_HEADER* GetFirstSection(IMAGE_NT_HEADERS64* nt_header) {
 // typedef PIMAGE_TLS_DIRECTORY32          PIMAGE_TLS_DIRECTORY;
 // #endif
 
-// ////@[comment("MVI_tracked")]
-// typedef struct _IMAGE_IMPORT_DESCRIPTOR {
-//     union {
-//         DWORD   Characteristics;            // 0 for terminating null import descriptor
-//         DWORD   OriginalFirstThunk;         // RVA to original unbound IAT (PIMAGE_THUNK_DATA)
-//     } DUMMYUNIONNAME;
-//     DWORD   TimeDateStamp;                  // 0 if not bound,
-//                                             // -1 if bound, and real date\time stamp
-//                                             //     in IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (new BIND)
-//                                             // O.W. date/time stamp of DLL bound to (Old BIND)
-
-//     DWORD   ForwarderChain;                 // -1 if no forwarders
-//     DWORD   Name;
-//     DWORD   FirstThunk;                     // RVA to IAT (if bound this IAT has actual addresses)
-// } IMAGE_IMPORT_DESCRIPTOR;
-// typedef IMAGE_IMPORT_DESCRIPTOR UNALIGNED *PIMAGE_IMPORT_DESCRIPTOR;
-
-// //
-// // New format import descriptors pointed to by DataDirectory[ IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT ]
-// //
-
-// typedef struct _IMAGE_BOUND_IMPORT_DESCRIPTOR {
-//     DWORD   TimeDateStamp;
-//     WORD    OffsetModuleName;
-//     WORD    NumberOfModuleForwarderRefs;
-// // Array of zero or more IMAGE_BOUND_FORWARDER_REF follows
-// } IMAGE_BOUND_IMPORT_DESCRIPTOR,  *PIMAGE_BOUND_IMPORT_DESCRIPTOR;
-
-// typedef struct _IMAGE_BOUND_FORWARDER_REF {
-//     DWORD   TimeDateStamp;
-//     WORD    OffsetModuleName;
-//     WORD    Reserved;
-// } IMAGE_BOUND_FORWARDER_REF, *PIMAGE_BOUND_FORWARDER_REF;
 
 // typedef struct _IMAGE_DELAYLOAD_DESCRIPTOR {
 //     union {
