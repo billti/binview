@@ -16,9 +16,90 @@ void LogSectionNames(IMAGE_NT_HEADERS32 *pe_header) {
   WORD section_count = pe_header->FileHeader.NumberOfSections;
   char section_name[9];
   for(WORD i = 0; i < section_count; ++i, ++section) {
+    // TODO: Handle '/' followed by address of section name.
+    // See https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-image_section_header
     memset(section_name, 0, 9);
     memcpy(section_name, section->Name, 8);
     LOG("Section %d: %s\n", i, section_name);
+    LOG("  VirtualAddress: 0x%08X @ fileOffset: 0x%08X\n\n", section->VirtualAddress, section->PointerToRawData);
+  }
+}
+
+IMAGE_SECTION_HEADER* GetSectionContainingRva(IMAGE_NT_HEADERS32 *pe_header, DWORD rva) {
+  if (pe_header->FileHeader.NumberOfSections == 0) return nullptr;
+  IMAGE_SECTION_HEADER* section = GetFirstSection(pe_header);
+  WORD section_count = pe_header->FileHeader.NumberOfSections;
+  for(WORD i = 0; i < section_count; ++i, ++section) {
+    if (section->VirtualAddress <= rva &&
+        (section->VirtualAddress + section->SizeOfRawData) > rva) {
+      LOG("RVA 0x%08X found in section %d\n", rva, i);
+      return section;
+    }
+  }
+  LOG("RVA 0x%08X not found in any section\n", rva);
+  return nullptr;
+}
+
+DWORD GetFileOffsetForRva(IMAGE_NT_HEADERS32 *pe_header, DWORD rva) {
+  IMAGE_SECTION_HEADER* section = GetSectionContainingRva(pe_header, rva);
+  if (section == nullptr) return 0;
+
+  DWORD offset = section->PointerToRawData + (rva - section->VirtualAddress);
+  LOG("RVA: 0x%08X at file offset: 0x%08X. (Section at VirtualAddress 0x%08X starts at file offset 0x%08X)\n",
+      rva, offset, section->VirtualAddress, section->PointerToRawData);
+  return offset;
+}
+
+void GetExports(uintptr_t file_addr, IMAGE_NT_HEADERS32 *pe_header) {
+  IMAGE_DATA_DIRECTORY exports = pe_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
+  if (exports.Size == 0) {
+    LOG("No exports present\n");
+  }
+
+  IMAGE_SECTION_HEADER *export_section = GetSectionContainingRva(pe_header, exports.VirtualAddress);
+
+  // Give an RVA within the section, what is the offset from the file start
+  int rva_to_offset = -(export_section->VirtualAddress) + export_section->PointerToRawData;
+  DWORD export_dir_offset = exports.VirtualAddress + rva_to_offset;
+
+  IMAGE_EXPORT_DIRECTORY* export_dir = (IMAGE_EXPORT_DIRECTORY*)(file_addr + export_dir_offset);
+  char* filename = (char*)(export_dir->Name + rva_to_offset + file_addr);
+  LOG("Exports file name: %s\n", filename);
+
+
+  DWORD rvaFunctions = export_dir->AddressOfFunctions;
+  DWORD* functions = (DWORD*)(file_addr + rvaFunctions + rva_to_offset);
+  DWORD rvaNames = export_dir->AddressOfNames;
+  DWORD* names = (DWORD*)(file_addr + rvaNames + rva_to_offset);
+  DWORD rvaOrdinals = export_dir->AddressOfNameOrdinals;
+  WORD* ordinals = (WORD*)(file_addr + rvaOrdinals + rva_to_offset);
+  DWORD ordinalBase = export_dir->Base;
+  DWORD functionCount = export_dir->NumberOfFunctions;
+  DWORD nameCount = export_dir->NumberOfNames;
+
+  // functions are in ordinal order (indexed from ordinalBase)
+  for (int i = 0; i < functionCount; ++i) {
+    DWORD fn_addr_rva = functions[i];
+    if (fn_addr_rva == 0) continue; // May be empty entries for skipped ordinals
+
+    // See if the function ordinal has an associated name. Search the ordinals array
+    char* fn_name = nullptr;
+    for(int j = 0; j < nameCount; ++j) {
+      if (ordinals[j] == i) {
+        DWORD fn_name_rva = names[j];
+        fn_name = (char*)(file_addr + fn_name_rva + rva_to_offset);
+      }
+    }
+    if (fn_name == nullptr) {
+      LOG("Ordinal %d at RVA 0x%08X. No name\n", i + ordinalBase, fn_addr_rva);
+    } else {
+      LOG("Ordinal %d at RVA 0x%08X: %s\n", i + ordinalBase, fn_addr_rva, fn_name);
+    }
+
+    // It may point to another entry (a forwarder), not a function
+    if (fn_addr_rva >= exports.VirtualAddress && fn_addr_rva < (exports.VirtualAddress + exports.Size)) {
+      char* forwarded_to = (char*)(file_addr + fn_addr_rva + rva_to_offset);
+    }
   }
 }
 
@@ -31,6 +112,7 @@ string GetFileType(uintptr_t file_addr, size_t size) {
 
       // The actual PE data is at the offset in the field below.
       int pe_offset = pHeader->e_lfanew;
+      LOG("IMAGE_NT_HEADER offset is %d\n", pe_offset);
       // IMAGE_NT_HEADERS32 & 64 start with the same signature, and have whether
       // they are 32 or 64 bit indicated by OptionalHeader.Magic (which is the
       // same offset for either bitness).
@@ -65,6 +147,7 @@ string GetFileType(uintptr_t file_addr, size_t size) {
         switch (pe_header->FileHeader.Machine) {
           case IMAGE_FILE_MACHINE_I386:
             LOG("Optional header indicates a 32-bit I386 binary\n");
+            GetExports(file_addr, pe_header);
             return string{PE_X86};
           default:
             LOG("Header indicates an unrecognized 32-bit binary\n");

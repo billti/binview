@@ -12,7 +12,7 @@ using namespace std;
 
 string FileType(const string& path) {
   std::cout << "Reading file at: " << path << std::endl;
-  ifstream file(path);
+  ifstream file(path, ifstream::binary);
   file.seekg(0, ios::end);
   size_t size = file.tellg();
 
@@ -35,6 +35,9 @@ int main() {
   FileType(path);
 
   path = "./assets/x86_delayimp.lib";
+  FileType(path);
+
+  path = "./assets/x86_c2.dll";
   FileType(path);
 
   return 0;
