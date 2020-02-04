@@ -160,6 +160,15 @@ struct IMAGE_NT_HEADERS32 {
     IMAGE_OPTIONAL_HEADER32 OptionalHeader;
 };
 
+struct IMAGE_NT_HEADERS {
+  DWORD Signature;
+  IMAGE_FILE_HEADER FileHeader;
+  union {
+    IMAGE_OPTIONAL_HEADER32 _32;
+    IMAGE_OPTIONAL_HEADER64 _64;
+  } OptionalHeader;
+};
+
 struct IMAGE_SECTION_HEADER {
     BYTE    Name[8];
     union {
@@ -177,16 +186,24 @@ struct IMAGE_SECTION_HEADER {
 };
 static_assert(sizeof(IMAGE_SECTION_HEADER) == 40);
 
-inline IMAGE_SECTION_HEADER* GetFirstSection(IMAGE_NT_HEADERS32* nt_header) {
+inline bool Is32Bit(IMAGE_NT_HEADERS* pe_header) {
+    return pe_header->OptionalHeader._32.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC;
+}
+
+inline IMAGE_DATA_DIRECTORY GetDataDirectory(IMAGE_NT_HEADERS* pe_header, int index) {
+  if (Is32Bit(pe_header)) {
+    return pe_header->OptionalHeader._32.DataDirectory[index];
+  } else {
+    return pe_header->OptionalHeader._64.DataDirectory[index];
+  }
+}
+
+inline IMAGE_SECTION_HEADER* GetFirstSection(IMAGE_NT_HEADERS* nt_header) {
     // nt_header->FileHeader.NumberOfSections -> How many total sections
     uintptr_t result =
         (uintptr_t)nt_header + offsetof(IMAGE_NT_HEADERS32, OptionalHeader)
         + nt_header->FileHeader.SizeOfOptionalHeader;
     return (IMAGE_SECTION_HEADER*)result;
-}
-inline IMAGE_SECTION_HEADER* GetFirstSection(IMAGE_NT_HEADERS64* nt_header) {
-    // Layout of the fields is the same as for 32 bits.
-    return GetFirstSection((IMAGE_NT_HEADERS32*) nt_header);
 }
 
 //

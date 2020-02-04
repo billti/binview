@@ -11,7 +11,7 @@
 
 using std::string, std::vector, std::map;
 
-void LogSectionNames(IMAGE_NT_HEADERS32 *pe_header) {
+void LogSectionNames(IMAGE_NT_HEADERS *pe_header) {
   IMAGE_SECTION_HEADER* section = GetFirstSection(pe_header);
   WORD section_count = pe_header->FileHeader.NumberOfSections;
   char section_name[9];
@@ -25,7 +25,7 @@ void LogSectionNames(IMAGE_NT_HEADERS32 *pe_header) {
   }
 }
 
-IMAGE_SECTION_HEADER* GetSectionContainingRva(IMAGE_NT_HEADERS32 *pe_header, DWORD rva) {
+IMAGE_SECTION_HEADER* GetSectionContainingRva(IMAGE_NT_HEADERS *pe_header, DWORD rva) {
   if (pe_header->FileHeader.NumberOfSections == 0) return nullptr;
   IMAGE_SECTION_HEADER* section = GetFirstSection(pe_header);
   WORD section_count = pe_header->FileHeader.NumberOfSections;
@@ -40,7 +40,7 @@ IMAGE_SECTION_HEADER* GetSectionContainingRva(IMAGE_NT_HEADERS32 *pe_header, DWO
   return nullptr;
 }
 
-DWORD GetFileOffsetForRva(IMAGE_NT_HEADERS32 *pe_header, DWORD rva) {
+DWORD GetFileOffsetForRva(IMAGE_NT_HEADERS *pe_header, DWORD rva) {
   IMAGE_SECTION_HEADER* section = GetSectionContainingRva(pe_header, rva);
   if (section == nullptr) return 0;
 
@@ -50,10 +50,15 @@ DWORD GetFileOffsetForRva(IMAGE_NT_HEADERS32 *pe_header, DWORD rva) {
   return offset;
 }
 
-void GetExports(uintptr_t file_addr, IMAGE_NT_HEADERS32 *pe_header) {
-  IMAGE_DATA_DIRECTORY exports = pe_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
+void GetExports(uintptr_t file_addr) {
+  IMAGE_DOS_HEADER* pHeader = (IMAGE_DOS_HEADER*)file_addr;
+  if (pHeader->e_magic != IMAGE_DOS_SIGNATURE) return;
+  IMAGE_NT_HEADERS *pe_header = (IMAGE_NT_HEADERS*)(file_addr + pHeader->e_lfanew);
+  if (pe_header->Signature != IMAGE_NT_SIGNATURE) return;
+  IMAGE_DATA_DIRECTORY exports = GetDataDirectory(pe_header, IMAGE_DIRECTORY_ENTRY_EXPORT);
   if (exports.Size == 0) {
     LOG("No exports present\n");
+    return;
   }
 
   IMAGE_SECTION_HEADER *export_section = GetSectionContainingRva(pe_header, exports.VirtualAddress);
@@ -99,6 +104,7 @@ void GetExports(uintptr_t file_addr, IMAGE_NT_HEADERS32 *pe_header) {
     // It may point to another entry (a forwarder), not a function
     if (fn_addr_rva >= exports.VirtualAddress && fn_addr_rva < (exports.VirtualAddress + exports.Size)) {
       char* forwarded_to = (char*)(file_addr + fn_addr_rva + rva_to_offset);
+      LOG("  Forwarded to: %s\n", forwarded_to);
     }
   }
 }
@@ -116,7 +122,7 @@ string GetFileType(uintptr_t file_addr, size_t size) {
       // IMAGE_NT_HEADERS32 & 64 start with the same signature, and have whether
       // they are 32 or 64 bit indicated by OptionalHeader.Magic (which is the
       // same offset for either bitness).
-      IMAGE_NT_HEADERS32 *pe_header = (IMAGE_NT_HEADERS32*)(file_addr + pe_offset);
+      IMAGE_NT_HEADERS *pe_header = (IMAGE_NT_HEADERS*)(file_addr + pe_offset);
       if ((uintptr_t)pe_header + sizeof(IMAGE_NT_HEADERS64) > file_addr + size) {
         // Appears to start with the DOS stub, but not big enough for a PE/PE+
         return string{};
@@ -138,22 +144,22 @@ string GetFileType(uintptr_t file_addr, size_t size) {
         } else {
           LOG("Image is an executable (e.g. .exe");
         }
+        GetExports(file_addr);
       }
       // pe_header->OptionalHeader.AddressOfEntryPoint == main or DllMain, or _crtMain or NULL (/noentry) etc.
       // IMAGE_SECTION_HEADER* first_section = GetFirstSection(pe_header);
-      if (pe_header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
+      if (pe_header->OptionalHeader._32.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
         // if an exe, pe_header->OptionalHeader.Subsystem == IMAGE_SUBSYSTEM_WINDOWS_{GUI,CUI} etc..
         LogSectionNames(pe_header);
         switch (pe_header->FileHeader.Machine) {
           case IMAGE_FILE_MACHINE_I386:
             LOG("Optional header indicates a 32-bit I386 binary\n");
-            GetExports(file_addr, pe_header);
             return string{PE_X86};
           default:
             LOG("Header indicates an unrecognized 32-bit binary\n");
             return string{};
         }
-      } else if (pe_header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
+      } else if (pe_header->OptionalHeader._64.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
         LOG("Optional header indicates a 64-bit binary\n");
         LogSectionNames(pe_header);
         switch (pe_header->FileHeader.Machine) {
