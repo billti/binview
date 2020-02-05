@@ -282,6 +282,47 @@ struct IMAGE_BOUND_FORWARDER_REF {
     WORD    OffsetModuleName;
     WORD    Reserved;
 };
+
+//
+// Symbol format.
+//
+
+#pragma pack(push, 2)
+struct IMAGE_SYMBOL {
+    union {
+        BYTE    ShortName[8];
+        struct {
+            DWORD   Short;     // if 0, use LongName
+            DWORD   Long;      // offset into string table
+        } Name;
+        DWORD   LongName[2];    // PBYTE [2]
+    } N;
+    DWORD   Value;
+    SHORT   SectionNumber;
+    WORD    Type;
+    BYTE    StorageClass;
+    BYTE    NumberOfAuxSymbols;
+};
+#pragma pack(pop)
+static_assert(sizeof(IMAGE_SYMBOL) == 18);
+
+struct IMAGE_SYMBOL_EX {
+    union {
+        BYTE     ShortName[8];
+        struct {
+            DWORD   Short;     // if 0, use LongName
+            DWORD   Long;      // offset into string table
+        } Name;
+        DWORD   LongName[2];    // PBYTE  [2]
+    } N;
+    DWORD   Value;
+    LONG    SectionNumber;
+    WORD    Type;
+    BYTE    StorageClass;
+    BYTE    NumberOfAuxSymbols;
+};
+static_assert(sizeof(IMAGE_SYMBOL_EX) == 20);
+
 // #define IMAGE_ORDINAL64(Ordinal) (Ordinal & 0xffff)
 // #define IMAGE_ORDINAL32(Ordinal) (Ordinal & 0xffff)
 // #define IMAGE_SNAP_BY_ORDINAL64(Ordinal) ((Ordinal & IMAGE_ORDINAL_FLAG64) != 0)
@@ -377,46 +418,6 @@ struct IMAGE_BOUND_FORWARDER_REF {
 //     DWORD   NumberOfSymbols;
 // } ANON_OBJECT_HEADER_BIGOBJ;
 
-
-// //
-// // Symbol format.
-// //
-
-// typedef struct _IMAGE_SYMBOL {
-//     union {
-//         BYTE    ShortName[8];
-//         struct {
-//             DWORD   Short;     // if 0, use LongName
-//             DWORD   Long;      // offset into string table
-//         } Name;
-//         DWORD   LongName[2];    // PBYTE [2]
-//     } N;
-//     DWORD   Value;
-//     SHORT   SectionNumber;
-//     WORD    Type;
-//     BYTE    StorageClass;
-//     BYTE    NumberOfAuxSymbols;
-// } IMAGE_SYMBOL;
-// typedef IMAGE_SYMBOL UNALIGNED *PIMAGE_SYMBOL;
-
-// #define IMAGE_SIZEOF_SYMBOL                  18
-
-// typedef struct _IMAGE_SYMBOL_EX {
-//     union {
-//         BYTE     ShortName[8];
-//         struct {
-//             DWORD   Short;     // if 0, use LongName
-//             DWORD   Long;      // offset into string table
-//         } Name;
-//         DWORD   LongName[2];    // PBYTE  [2]
-//     } N;
-//     DWORD   Value;
-//     LONG    SectionNumber;
-//     WORD    Type;
-//     BYTE    StorageClass;
-//     BYTE    NumberOfAuxSymbols;
-// } IMAGE_SYMBOL_EX;
-// typedef IMAGE_SYMBOL_EX UNALIGNED *PIMAGE_SYMBOL_EX;
 
 // // MACROS
 

@@ -109,6 +109,50 @@ void GetExports(uintptr_t file_addr) {
   }
 }
 
+void GetObjFile(uintptr_t file_addr) {
+    IMAGE_FILE_HEADER* file_header = (IMAGE_FILE_HEADER*)file_addr;
+    if (file_header->Machine == IMAGE_FILE_MACHINE_AMD64) {
+      LOG("Dumping AMD64 COFF object file\n");
+    } else if (file_header->Machine == IMAGE_FILE_MACHINE_I386) {
+      LOG("Dumping x86 COFF object file\n");
+    } else if (file_header->Machine == IMAGE_FILE_MACHINE_ARM64) {
+      LOG("Dumping ARM64 COFF object file\n");
+    } else {
+      LOG("Did not recognized file as a supported .obj file\n");
+      return;
+    }
+    IMAGE_SECTION_HEADER* section_header = (IMAGE_SECTION_HEADER*)
+        ((uintptr_t)(file_header + 1) + file_header->SizeOfOptionalHeader);
+
+    // See https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#coff-symbol-table
+    IMAGE_SYMBOL* image_symbol = (IMAGE_SYMBOL*)(file_addr + file_header->PointerToSymbolTable);
+    int symbol_count = file_header->NumberOfSymbols;
+    if (symbol_count == 0) return;
+    LOG("Symbol count: %d\n", symbol_count);
+    // Symbol table is after the array of IMAGE_SYMBOLs (plus a DWORD for string table size).
+    char* string_table = (char*)(image_symbol + symbol_count);
+    char tmp_name[9];
+    string symbol_name;
+    int symbol_index = 0;
+
+    for (int i = 0; i < symbol_count; ++i) {
+      if (image_symbol->N.Name.Short != 0) {
+        // Get the name from the string table
+        memcpy(tmp_name, image_symbol->N.ShortName, 8);
+        tmp_name[8] = 0;
+        symbol_name = string(tmp_name);
+      } else {
+        // Get the name from the struct
+        symbol_name = string(string_table + image_symbol->N.Name.Long);
+      }
+      LOG("Symbol %d: %s\n", ++symbol_index, symbol_name.c_str());
+      LOG("  Type: 0x%X, StorageClass: 0x%X, Section: %d, AuxSymbols: %d\n", image_symbol->Type, image_symbol->StorageClass, image_symbol->SectionNumber, image_symbol->NumberOfAuxSymbols);
+      // TODO: Other symbol details from the aux entry, etc.
+      image_symbol += image_symbol->NumberOfAuxSymbols + 1;
+      i += image_symbol->NumberOfAuxSymbols;
+    }
+}
+
 string GetFileType(uintptr_t file_addr, size_t size) {
   // Windows binaries start with "MZ"
   if(size > sizeof(IMAGE_DOS_HEADER)) {
@@ -185,12 +229,15 @@ string GetFileType(uintptr_t file_addr, size_t size) {
     IMAGE_FILE_HEADER* file_header = (IMAGE_FILE_HEADER*)file_addr;
     if (file_header->Machine == IMAGE_FILE_MACHINE_AMD64) {
       LOG("Image appears to be an AMD64 COFF object file\n");
+      GetObjFile(file_addr);
       return string{COFF_AMD64};
     } else if (file_header->Machine == IMAGE_FILE_MACHINE_I386) {
       LOG("Image appears to be an x86 COFF object file\n");
+      GetObjFile(file_addr);
       return string{COFF_X86};
     } else if (file_header->Machine == IMAGE_FILE_MACHINE_ARM64) {
       LOG("Image appears to be an ARM64 COFF object file\n");
+      GetObjFile(file_addr);
       return string{COFF_ARM64};
     }
   }
